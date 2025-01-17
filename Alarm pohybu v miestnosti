@@ -1,0 +1,83 @@
+#include <SPI.h>              // SPI - serial peripheral interface - komunikacia s perifernymi zariadeniami
+
+#include <Wire.h>            // Wire - umoznuje komunikaciu s I2C zariadeniami//
+
+#include <Adafruit_GFX.h>                  // zahrnutie grafickej kniznice
+       
+
+#include <oled.h>             // zahrnieme konkretny typ nasho OLED displeja
+
+
+#define SCREEN_WIDTH 128             // sirka OLED, v pixeloch
+
+#define SCREEN_HEIGHT 64             // vyska OLED, v pixeloch
+
+
+OLED display(D2,D1,NO_RESET_PIN,OLED::W_128,OLED::H_64,OLED::CTRL_SH1106,0x3C);              // vytvorenie objektu OLED displeja pripojeneho k I2C
+
+
+#define MOTION_SENSOR_PIN D0                      // ESP32 pin GPI016 pripojeny k OUTPUT-pinu pohyboveho senzora
+
+#define LED_PIN D4                                               // ESP32 pin GPI02 pripojeny k LED pin
+
+
+
+int motionStateCurrent = LOW;                     // sucasny stav pinu pohyboveho senzora
+
+int motionStatePrevious = LOW;                  // predchadzajuci stav pinu pohyboveho senzora
+
+
+
+void setup() {
+
+  Serial.begin(9600);                                               // zaciatok, nastavenie prenosovej rychlosti
+
+  pinMode(MOTION_SENSOR_PIN, INPUT);       // nastavenie ESP32 pinu do vstupneho modu
+
+  pinMode(LED_PIN, OUTPUT);                            // nastavenie ESP32 pinu do vystupneho modu
+
+
+
+  // inicializacia OLED displeja s I2C adresou 0x3C
+
+display.begin();
+
+}
+
+
+
+void loop() {                    // opakujuci sa cyklus
+
+
+
+  motionStatePrevious = motionStateCurrent;                                  // ulozenie povodneho stavu
+
+  motionStateCurrent = digitalRead(MOTION_SENSOR_PIN);        // detekcia noveho stavu
+
+
+
+  if (motionStatePrevious == LOW && motionStateCurrent == HIGH) {            // zmena stavu na pine: LOW -> HIGH (senzor nieco registruje)
+
+    Serial.println("Pohyb zaznamenany! zapnutie LED");                                      // zobrazenie hlasenia v monitore serioveho portu
+
+    digitalWrite(LED_PIN, HIGH);                                                                              // zapnutie pinu LED diody
+display.clear();                                                                                              // zmazanie displeja
+ display.draw_string(1,1,"Pohyb zaznamenany!");                                                               // zobrazenie hlasenia v monitore serioveho portu
+  display.display();                                                                                          // nastavenie obsahu zobrazeneho textu
+  delay(500);
+
+  } else if (motionStatePrevious == HIGH && motionStateCurrent == LOW) {              // zmena stavu na pine: HIGH -> LOW (senzor uz nic neregistruje)
+
+    Serial.println("Pohyb ukonceny!, vypnutie LED");
+
+   display.clear();                                                         // zmazanie displeja
+   display.draw_string(1,1,"Ziaden pohyb!");                                // zobrazenie hlasenia v monitore serioveho portu
+   display.display();                                                       // nastavenie obsahu zobrazeneho textu
+   delay(500);                                                              // oneskorenie (0,5 sekunda)
+   digitalWrite(LED_PIN, LOW);                                        // vypnutie pinu LED diody
+
+
+  }
+
+  delay(1000);          
+  }              // oneskorenie (1 sekunda)
